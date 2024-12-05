@@ -6,6 +6,8 @@ import views
 def main(page: ft.Page):
     page.bgcolor = "#fffada"
     page.window.title_bar_hidden = False if "ANDROID_BOOTLOGO" in os.environ else True
+    page.theme_mode = ft.ThemeMode.LIGHT
+    page.scroll = ft.ScrollMode.ALWAYS
     page.fonts = {
         "Bahnschrift" : "fonts/Bahnschrift.ttf"
     }
@@ -14,13 +16,20 @@ def main(page: ft.Page):
         font_family= "Bahnschrift"
     )
 
-    opening_view = views.OpeningView()
+    views_dict = dict()
+    views_dict["opening"] = views.OpeningView()
+    views_dict["login"] = views.LoginView()
+    views_dict["signup"] = views.SignupView()
+    views_dict["home"] = views.HomeView()
+    views_dict["class"] = views.ClassView()
 
     page_switcher = ft.AnimatedSwitcher(
-        opening_view,
-        duration=250,
-        reverse_duration=250
+        views_dict["opening"],
+        duration=200,
+        reverse_duration=200,
+        transition=ft.AnimatedSwitcherTransition.SCALE
     )
+    page.session.set("views", views_dict)
 
     def minimize():
         page.window.minimized = True
@@ -63,7 +72,12 @@ def main(page: ft.Page):
             )
         ))
 
-    page.add(page_switcher)
+    page.add(
+        ft.SafeArea(
+            page_switcher,
+            minimum_padding=16
+        )
+    )
 
 
 ft.app(main, assets_dir="assets")
