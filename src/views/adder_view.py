@@ -1,7 +1,31 @@
 import flet as ft
-from widgets import NeuContainer, RankItem, NeuButton, NeuTextField
+import array as arr
+from widgets import NeuButton, NeuTextField
 
 from utils import UserDatabase
+
+class TextFieldArray:
+    def __init__(self):
+        self.fields = []
+
+    def append(self, label, on_change):
+        field = NeuTextField(label, on_change=on_change)
+        self.fields.append(field)
+
+    def __getitem__(self, index):
+        return self.fields[index]
+
+    def __setitem__(self, index, value):
+        if isinstance(value, NeuTextField):
+            self.fields[index] = value
+        else:
+            raise TypeError("Only NeuTextField instances can be assigned.")
+
+    def __len__(self):
+        return len(self.fields)
+
+    def __iter__(self):
+        return iter(self.fields)
 
 class AdderView(ft.Container):
     def __init__(self):
@@ -20,14 +44,15 @@ class AdderView(ft.Container):
         )
 
         title = ft.Text("Enter your grades", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.START, size=24)
-        self.dsa = NeuTextField("Data Structures and Algorithms", on_change=self.on_change)
-        self.hdl = NeuTextField("Introduction to HDL", on_change=self.on_change)
-        self.rm = NeuTextField("Research Methods", on_change=self.on_change)
-        self.ms = NeuTextField("Mixed Signals", on_change=self.on_change)
-        self.fb = NeuTextField("Feedback", on_change=self.on_change)
-        self.logic = NeuTextField("Logic", on_change=self.on_change)
-        self.fili = NeuTextField("Fili", on_change=self.on_change)
-        self.cisco = NeuTextField("CISCO", on_change=self.on_change)
+        self.text_fields = TextFieldArray()
+        self.text_fields.append("Data Structures and Algorithms", self.on_change)
+        self.text_fields.append("Introduction to HDL", self.on_change)
+        self.text_fields.append("Research Methods", self.on_change)
+        self.text_fields.append("Mixed Signals", self.on_change)
+        self.text_fields.append("Feedback", self.on_change)
+        self.text_fields.append("Logic", self.on_change)
+        self.text_fields.append("Fili", self.on_change)
+        self.text_fields.append("CISCO", self.on_change)
 
         self.upload_button = NeuButton("Add Grades", "#6743f8", disabled=True, on_click=self.add_grades)
         
@@ -35,14 +60,7 @@ class AdderView(ft.Container):
             controls=[
                 top_row,
                 title,
-                self.dsa,
-                self.hdl,
-                self.rm,
-                self.ms,
-                self.fb,
-                self.logic, 
-                self.fili,
-                self.cisco,
+                *self.text_fields,
                 self.upload_button
             ],
             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -63,18 +81,10 @@ class AdderView(ft.Container):
         self.group = self.page.session.get("group")
 
         user_database: UserDatabase = self.page.session.get("user_database")
-        user_database.add_grades(
-            user_name,
-            self.group,
-            int(self.dsa.value),
-            int(self.hdl.value),
-            int(self.rm.value),
-            int(self.ms.value),
-            int(self.fb.value),
-            int(self.logic.value),
-            int(self.fili.value),
-            int(self.cisco.value)
-        )
+
+        # Collect grades from TextFieldArray
+        grades = [int(field.value) for field in self.text_fields]
+        user_database.add_grades(user_name, self.group, *grades)
 
         self.return_class(event)
     

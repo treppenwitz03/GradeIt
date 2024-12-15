@@ -1,8 +1,8 @@
 {
     "Users": {
         "Bill": {
-            "email": "hahahaha@gmail.com",
-            "password": "pass"
+            "email": "billiam@gmail.com",
+            "password": "0000000000000000000000000000000000000000000000000000000000346411"
         }
     },
     "Classes": {
@@ -46,7 +46,18 @@
                 "Logic": 88,
                 "FILI": 34,
                 "CISCO": 67
-            }
+            },
+            "Constance": {
+                "DSA": 90,
+                "HDL": 91,
+                "RM": 92,
+                "Mixed Signals": 93,
+                "Feedback": 94,
+                "Logic": 95,
+                "FILI": 96,
+                "CISCO": 97
+            },
+            "Horace": {}
         },
         "Amazing": {
             "Bill": {
@@ -59,6 +70,9 @@
                 "FILI": 100,
                 "CISCO": 100
             }
+        },
+        "Evangelion": {
+            "Horace": {}
         }
     }
 }

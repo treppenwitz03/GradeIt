@@ -5,13 +5,28 @@ class UserDatabase(dict):
         super().__init__()
         
         self.load_file()
+
+    def hash_password(self, password: str):
+        hash_value = 0
+    
+        # Iterate over each character in the password
+        for char in password:
+            # Use the ASCII value of the character and perform a combination of operations
+            hash_value = (hash_value * 31 + ord(char)) & 0xFFFFFFFFFFFFFFFF  # Keep it 64-bit
+        
+        # Convert the hash to a hexadecimal string (64 characters wide)
+        hash_hex = hex(hash_value)[2:].zfill(64)  # Ensure it's exactly 64 characters
+        
+        return hash_hex
     
     def load_file(self):
         with open("src/contents.json", "r+", encoding="utf-8") as f:
             self.users: dict = json.load(f)
 
-    def add(self, user):
+    def add(self, user, username):
         if (user not in list(self.users.keys())):
+            password = user[username]["password"]
+            user[username]["password"] = self.hash_password(password)
             self.users["Users"].update(user)
         else:
             return False
@@ -26,7 +41,7 @@ class UserDatabase(dict):
     def existing(self, uname, pw):
         for user in list(self.users["Users"].keys()):
             if uname == user:
-                if self.users["Users"][uname]["password"] == pw:
+                if self.users["Users"][uname]["password"] == self.hash_password(pw):
                     return True
                 else:
                     return "PW wrong"
@@ -46,11 +61,14 @@ class UserDatabase(dict):
 
     def create_group_for_user(self, name, group):
         try:
-            self.users["Classes"][group] = {
-                name : {
-                    # Grades
+            if group in self.users["Classes"].keys():
+                self.users["Classes"][group][name] = {}
+            else:
+                self.users["Classes"][group] = {
+                    name : {
+                        # Grades
+                    }
                 }
-            }
 
             with open("src/contents.json", "r+", encoding="utf-8") as f:
                 json.dump(self.users, f, indent=4)
@@ -83,12 +101,9 @@ class UserDatabase(dict):
 
         return True
 
-def ordinalize(number: str):
+def ordinalize(number: int):
     try:
-        assert number.isnumeric()
-
-        num = int(number)
-        match num:
+        match number:
             case 1:
                 return "1st"
             case 2:
@@ -96,7 +111,7 @@ def ordinalize(number: str):
             case 3:
                 return "3rd"
             case _:
-                return f"{num}th"
+                return f"{number}th"
 
     except AssertionError:
         return None

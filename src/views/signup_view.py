@@ -90,7 +90,7 @@ class SignupView(ft.Container):
         }
 
         user_database: UserDatabase = self.page.session.get("user_database")
-        success = user_database.add(user)
+        success = user_database.add(user, self.uname_tf.value)
 
         if not success:
             self.notify("Signup failed: Account already exists.")

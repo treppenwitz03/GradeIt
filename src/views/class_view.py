@@ -1,6 +1,41 @@
 import flet as ft
-from widgets import NeuContainer, RankItem, NeuButton
+from widgets import NeuContainer, RankItem, NeuButton, NeuTextField
 from utils import UserDatabase, ordinalize
+import heapq
+
+class BSTNode:
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+        self.left = None
+        self.right = None
+
+class BinarySearchTree:
+    def __init__(self):
+        self.root = None
+
+    def insert(self, key, value):
+        def _insert(node, key, value):
+            if not node:
+                return BSTNode(key, value)
+            if key < node.key:
+                node.left = _insert(node.left, key, value)
+            elif key > node.key:
+                node.right = _insert(node.right, key, value)
+            return node
+
+        self.root = _insert(self.root, key, value)
+
+    def search(self, key):
+        def _search(node, key):
+            if not node or node.key == key:
+                return node
+            if key < node.key:
+                return _search(node.left, key)
+            return _search(node.right, key)
+
+        result = _search(self.root, key)
+        return result.value if result else None
 
 class ClassView(ft.Container):
     def __init__(self):
@@ -11,7 +46,7 @@ class ClassView(ft.Container):
         class_settings_btn = ft.PopupMenuButton(icon=ft.Icons.SETTINGS, icon_color=ft.Colors.BLACK, icon_size=32)
 
         top_row = ft.Row(
-            controls = [
+            controls=[
                 back_button,
                 class_settings_btn
             ],
@@ -33,29 +68,35 @@ class ClassView(ft.Container):
             spacing=16,
             scroll=ft.ScrollMode.ALWAYS,
         )
-    
+
+        self.groups_bst = BinarySearchTree()
+
     def return_home(self, event):
         views: dict = self.page.session.get("views")
         switcher: ft.AnimatedSwitcher = self.parent
 
         switcher.content = views["home"]
         switcher.update()
-    
+
     def load_rankings(self, name):
         self.ranking_column.controls = []
         self.user_database: UserDatabase = self.page.session.get("user_database")
         current_user = self.page.session.get("user")
 
-        self.groups = self.user_database.get_groups_for_user(current_user)
-        current_group:dict = None
-        for group in self.groups:
-            for g in group:
-                if g == name:
-                    current_group = group
-        
+        # Load groups into BST if not already loaded
+        if not self.groups_bst.root:
+            groups = self.user_database.get_groups_for_user(current_user)
+            for group in groups:
+                for key, value in group.items():
+                    self.groups_bst.insert(key, value)
+
+        current_group = self.groups_bst.search(name)
+        if not current_group:
+            return
+
         self.page.session.set("group", name)
-        
-        if current_group[name][current_user] == {}:
+
+        if current_group.get(current_user, {}) == {}:
             self.calc_grades.visible = True
         else:
             self.calc_grades.visible = False
@@ -63,22 +104,19 @@ class ClassView(ft.Container):
 
         average_list = []
 
-        for person, grades in current_group[name].items():
+        for person, grades in current_group.items():
             all_grades = list(dict(grades).values())
             if len(all_grades) > 0:
-                average = sum(all_grades)/len(all_grades)
-                average_list.append((person, average))
-        
-        ranking = sorted(average_list, key=self.sort_func, reverse=True)
-        for index, item in enumerate(ranking):
+                average = sum(all_grades) / len(all_grades)
+                heapq.heappush(average_list, (-average, person))
+
+        while average_list:
+            index = len(self.ranking_column.controls)
+            average, person = heapq.heappop(average_list)
             rank = ordinalize(index + 1)
-            person = item[0]
             self.ranking_column.controls.append(RankItem(person, rank))
             self.ranking_column.update()
-    
-    def sort_func(self, item):
-        return int(item[1])
-    
+
     def to_calcu(self, event):
         views: dict = self.page.session.get("views")
         switcher: ft.AnimatedSwitcher = self.parent

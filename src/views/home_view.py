@@ -89,6 +89,7 @@ class HomeView(ft.Container):
         self.load_groups(self.groups)
     
     def load_groups(self, groups):
+        self.classes_row.controls = []
         group: dict = None
         for index, group in enumerate(groups):
             name = list(group.keys())[0]
