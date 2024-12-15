@@ -1,9 +1,12 @@
 import flet as ft
 from widgets import NeuButton, NeuTextField
 
+from utils import UserDatabase
+
 class LoginView(ft.Container):
     def __init__(self):
         super().__init__()
+        self.padding = 16
 
         signin_text = ft.Container(
             ft.Text(
@@ -17,13 +20,13 @@ class LoginView(ft.Container):
             margin=ft.margin.symmetric(48, 0)
         )
 
-        email_tf = NeuTextField("Enter your Email/Username", False, on_change=self.on_change)
+        self.email_tf = NeuTextField("Enter your Username", False, on_change=self.on_change)
 
-        password_tf = NeuTextField("Enter your Password", True, on_change=self.on_change)
+        self.password_tf = NeuTextField("Enter your Password", True, on_change=self.on_change)
 
         self.forgot_password = ft.TextButton("Forgot Password?", style=ft.ButtonStyle(color=ft.Colors.BLACK, text_style=ft.TextStyle(weight=ft.FontWeight.BOLD)))
 
-        self.proceed_button = NeuButton("Sign In", "#fa8128", on_click=self.login)
+        self.proceed_button = NeuButton("Sign In", "#fa8128", on_click=self.login, disabled=True)
 
         self.register_text = ft.Text(
             spans=[
@@ -41,8 +44,8 @@ class LoginView(ft.Container):
         self.content = ft.Column(
             controls=[
                 signin_text,
-                email_tf,
-                password_tf,
+                self.email_tf,
+                self.password_tf,
                 ft.Row([self.forgot_password], alignment=ft.MainAxisAlignment.END),
                 self.proceed_button,
                 ft.Container(ft.Row([
@@ -55,7 +58,11 @@ class LoginView(ft.Container):
         )
     
     def on_change(self, event):
-        pass
+        if all([self.email_tf.value, self.password_tf.value]):
+            self.proceed_button.disabled = False
+        else:
+            self.proceed_button.disabled = True
+        self.proceed_button.update()
 
     def register_hovered(self, event: ft.HoverEvent):
         self.register_text.spans[0].style.color = ft.Colors.PINK if "enter" in event.name else ft.Colors.BLUE
@@ -69,8 +76,25 @@ class LoginView(ft.Container):
         switcher.update()
     
     def login(self, event):
-        views: dict = self.page.session.get("views")
-        switcher: ft.AnimatedSwitcher = self.parent
+        user_database: UserDatabase = self.page.session.get("user_database")
+        success = user_database.existing(self.email_tf.value, self.password_tf.value)
 
-        switcher.content = views["home"]
-        switcher.update()
+        if success == "PW wrong":
+            self.notify("Password is wrong...")
+        elif success:
+            self.notify("Login successful! Welcome back!")
+            self.page.session.set("user", self.email_tf.value)
+            views: dict = self.page.session.get("views")
+            switcher: ft.AnimatedSwitcher = self.parent
+
+            switcher.content = views["home"]
+            switcher.update()
+
+            switcher.content.set_name(self.email_tf.value)
+        else:
+            self.notify("Login failed: Invalid username or password.")
+
+    def notify(self, message: str):
+        self.page.snack_bar = ft.SnackBar(ft.Text(message), duration=1000)
+        self.page.snack_bar.open = True
+        self.page.update()

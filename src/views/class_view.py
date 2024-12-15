@@ -1,9 +1,11 @@
 import flet as ft
 from widgets import NeuContainer, RankItem, NeuButton
+from utils import UserDatabase, ordinalize
 
 class ClassView(ft.Container):
     def __init__(self):
         super().__init__()
+        self.padding = 16
 
         back_button = ft.IconButton(ft.Icons.ARROW_BACK, ft.Colors.BLACK, on_click=self.return_home)
         class_settings_btn = ft.PopupMenuButton(icon=ft.Icons.SETTINGS, icon_color=ft.Colors.BLACK, icon_size=32)
@@ -17,47 +19,15 @@ class ClassView(ft.Container):
         )
 
         title = ft.Text("Rankings", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.START, size=24)
-        rankings = ft.Column(spacing=0, scroll=ft.ScrollMode.AUTO)
-        rankings.controls.append(RankItem("Araling Panlipunan", "1st"))
-        rankings.controls.append(RankItem("Physical Education", "2nd"))
-        rankings.controls.append(RankItem("Science and Tech", "1st"))
-        rankings.controls.append(RankItem("Values Education", "43rd"))
-        rankings.controls.append(RankItem("Mixed Signals", "1st"))
-        rankings.controls.append(RankItem("Research Methods", "1st"))
-        rankings.controls.append(RankItem("Data Structures", "1st"))
-        rankings.controls.append(RankItem("Araling Panlipunan", "1st"))
-        rankings.controls.append(RankItem("Physical Education", "2nd"))
-        rankings.controls.append(RankItem("Science and Tech", "1st"))
-        rankings.controls.append(RankItem("Values Education", "43rd"))
-        rankings.controls.append(RankItem("Mixed Signals", "1st"))
-        rankings.controls.append(RankItem("Research Methods", "1st"))
-        rankings.controls.append(RankItem("Data Structures", "1st"))
+        self.ranking_column = ft.Column(spacing=0, scroll=ft.ScrollMode.AUTO)
 
-        calc_grades = NeuButton("Add my Grades", "#48aaad", on_click=self.to_calcu, padding=ft.padding.symmetric(16, 0))
-
-        self.navigation_pane = ft.CupertinoNavigationBar(
-            destinations=[
-                ft.NavigationBarDestination(
-                    icon = NavigationIcon(ft.Icons.CLASS_OUTLINED, "Rankings"),
-                    selected_icon = NavigationIcon(ft.Icons.CLASS_, "Rankings")
-                ),
-                ft.NavigationBarDestination(
-                    icon = NavigationIcon(ft.Icons.PERSON_2_OUTLINED, "Members"),
-                    selected_icon = NavigationIcon(ft.Icons.PERSON_2, "Members")
-                )
-            ],
-            height=80,
-            bgcolor="#fffada",
-            border=ft.border.only(top=ft.BorderSide(2, ft.Colors.BLACK)),
-            active_color="#c334eb",
-            inactive_color=ft.Colors.BLACK
-        )
+        self.calc_grades = NeuButton("Add my Grades", "#48aaad", on_click=self.to_calcu, padding=ft.padding.symmetric(16, 0))
 
         self.content = ft.Column(
             controls=[
                 top_row,
-                ft.Row([title, calc_grades], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                NeuContainer(rankings, bgcolor="#fffada", padding=ft.padding.all(0), margin=ft.margin.all(0)),
+                ft.Row([title, self.calc_grades], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                NeuContainer(self.ranking_column, bgcolor="#fffada", padding=ft.padding.all(0), margin=ft.margin.all(0)),
             ],
             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
             spacing=16,
@@ -65,43 +35,53 @@ class ClassView(ft.Container):
         )
     
     def return_home(self, event):
-        self.page.navigation_bar = None
-        self.page.update()
-        
         views: dict = self.page.session.get("views")
         switcher: ft.AnimatedSwitcher = self.parent
 
         switcher.content = views["home"]
         switcher.update()
     
-    def show_nav_bar(self):
-        self.page.navigation_bar = self.navigation_pane
-        self.page.update()
+    def load_rankings(self, name):
+        self.ranking_column.controls = []
+        self.user_database: UserDatabase = self.page.session.get("user_database")
+        current_user = self.page.session.get("user")
+
+        self.groups = self.user_database.get_groups_for_user(current_user)
+        current_group:dict = None
+        for group in self.groups:
+            for g in group:
+                if g == name:
+                    current_group = group
+        
+        self.page.session.set("group", name)
+        
+        if current_group[name][current_user] == {}:
+            self.calc_grades.visible = True
+        else:
+            self.calc_grades.visible = False
+        self.calc_grades.update()
+
+        average_list = []
+
+        for person, grades in current_group[name].items():
+            all_grades = list(dict(grades).values())
+            if len(all_grades) > 0:
+                average = sum(all_grades)/len(all_grades)
+                average_list.append((person, average))
+        
+        ranking = sorted(average_list, key=self.sort_func, reverse=True)
+        for index, item in enumerate(ranking):
+            rank = ordinalize(index + 1)
+            person = item[0]
+            self.ranking_column.controls.append(RankItem(person, rank))
+            self.ranking_column.update()
+    
+    def sort_func(self, item):
+        return int(item[1])
     
     def to_calcu(self, event):
-        print("HAHAHA")
+        views: dict = self.page.session.get("views")
+        switcher: ft.AnimatedSwitcher = self.parent
 
-class NavigationIcon(ft.Container):
-    def __init__(self, icon: ft.Icons = None, label: str = None):
-        super().__init__()
-        self.content = ft.Column(
-            controls=[
-                ft.Icon(icon),
-                ft.Text(label, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK)
-            ],
-            alignment=ft.MainAxisAlignment.SPACE_AROUND,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=4
-        )
-        self.margin=ft.margin.only(top=8)
-        self.padding=ft.padding.all(8)
-        self.border_radius = 12
-        self.border = ft.border.all(2, ft.Colors.BLACK)
-        self.bgcolor = "#fffada"
-
-        self.shadow = ft.BoxShadow(
-            blur_radius=12,
-            color=ft.Colors.BLACK,
-            offset=ft.Offset(4, 4),
-            blur_style=ft.ShadowBlurStyle.SOLID
-        )
+        switcher.content = views["calc"]
+        switcher.update()

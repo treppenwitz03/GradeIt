@@ -1,11 +1,15 @@
 import flet as ft
-from widgets import NeuContainer, NeuTextField, RankItem
+from widgets import NeuContainer, NeuTextField, RankItem, NeuButton
+from utils import UserDatabase
 
 class HomeView(ft.Container):
     def __init__(self):
         super().__init__()
+        self.padding = 16
 
-        greeting = ft.Text("Warm greetings,\n", style=ft.TextStyle(color=ft.Colors.BLACK, size=16), spans=[ft.TextSpan("OWEN", style=ft.TextStyle(weight=ft.FontWeight.BOLD, size=24))])
+        self.user_text = ft.TextSpan("", style=ft.TextStyle(weight=ft.FontWeight.BOLD, size=24))
+
+        greeting = ft.Text("Warm greetings,\n", style=ft.TextStyle(color=ft.Colors.BLACK, size=16), spans=[self.user_text])
         user_image = ft.Icon(ft.Icons.PERSON_3, color=ft.Colors.BLACK, size=32)
 
         top_row = ft.Row(
@@ -16,57 +20,23 @@ class HomeView(ft.Container):
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN
         )
 
-        search_bar = NeuTextField("Search for your classes...", False, self.search)
+        self.add_class = NeuButton("Add a Class", "#48aaad", on_click=self.create_class, padding=ft.padding.symmetric(16, 0))
 
-        news_container = NeuContainer(
-            ft.Column(
-                controls=[
-                    ft.Text("A new class has added you.", color="#c334eb", size=14, weight=ft.FontWeight.BOLD),
-                    ft.Row(
-                        controls=[
-                            ft.Text("Add my grades to see rank", color = ft.Colors.BLACK, size=18, weight=ft.FontWeight.BOLD),
-                            ft.IconButton(ft.Icons.NAVIGATE_NEXT, "#c334eb", icon_size=32, on_click=self.to_class)
-                        ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER
-                    )
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.START
-            ),
-            "#e8c6f5",
-            "#c334eb",
-            ft.padding.all(16),
-            ft.margin.symmetric(16, 0)
+        classes_title = ft.Row(
+            controls = [
+                ft.Text("Classes", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.START, size=24),
+                self.add_class
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
         )
 
-        classes_title = ft.Text("Classes", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.START, size=24)
-
-        classes_row = ft.Row(scroll=ft.ScrollMode.ALWAYS, spacing=16)
-        classes_row.controls.append(ClassCard("USA", "america.svg", self.to_class))
-        classes_row.controls.append(ClassCard("France", "french.jpg", self.to_class))
-        classes_row.controls.append(ClassCard("Japan", "japan.jpg", self.to_class))
-        classes_row.controls.append(ClassCard("Philippines", "philippines.jpg", self.to_class))
-
-        prev_title = ft.Text("Previous Rankings", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.START, size=24)
-
-        old_rankings = ft.Column(spacing=0)
-        old_rankings.controls.append(RankItem("Araling Panlipunan", "1st"))
-        old_rankings.controls.append(RankItem("Physical Education", "2nd"))
-        old_rankings.controls.append(RankItem("Science and Tech", "1st"))
-        old_rankings.controls.append(RankItem("Values Education", "43rd"))
-        old_rankings.controls.append(RankItem("Mixed Signals", "1st"))
-        old_rankings.controls.append(RankItem("Research Methods", "1st"))
-        old_rankings.controls.append(RankItem("Data Structures", "1st"))
+        self.classes_row = ft.ResponsiveRow(run_spacing=16)
 
         self.content = ft.Column(
             controls=[
                 top_row,
-                search_bar,
-                news_container,
                 classes_title,
-                classes_row,
-                prev_title,
-                NeuContainer(old_rankings, bgcolor="#fffada", padding=ft.padding.all(0), margin=ft.margin.all(0))
+                self.classes_row
             ],
             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
             spacing=16,
@@ -74,28 +44,74 @@ class HomeView(ft.Container):
             expand=True
         )
     
-    def search(self, event):
-        pass
+    def create_class(self, event):
+        group_name = NeuTextField("Enter Class name")
+        self.page.dialog = ft.AlertDialog(
+            title=ft.Text("Add Class"),
+            content=group_name,
+            actions=[
+                ft.TextButton("Submit", on_click= lambda e: self.add_new_class(group_name.value))
+            ]
+        )
 
-    def to_class(self, event):
+        self.page.dialog.open = True
+        self.page.update()
+    
+    def add_new_class(self, group_name):
+        self.page.dialog.open = False
+        self.page.update()
+
+        self.user_database.create_group_for_user(self.user_text.text, group_name)
+        groups = self.user_database.get_groups_for_user(self.user_text.text)
+
+        self.load_groups(groups)
+
+    def to_class(self, name):
         views: dict = self.page.session.get("views")
         switcher: ft.AnimatedSwitcher = self.parent
 
         switcher.content = views["class"]
         switcher.update()
 
-        switcher.content.show_nav_bar()
+        switcher.content.load_rankings(name)
+    
+    def set_name(self, name):
+        self.user_text.text = name
+        self.user_text.update()
+
+        self.user_database: UserDatabase = self.page.session.get("user_database")
+        self.groups = self.user_database.get_groups_for_user(name)
+
+        if not self.groups:
+            self.notify("No classes joined yet. Add one.")
+            return
+
+        self.load_groups(self.groups)
+    
+    def load_groups(self, groups):
+        group: dict = None
+        for index, group in enumerate(groups):
+            name = list(group.keys())[0]
+            self.classes_row.controls.append(ClassCard(name, on_click=lambda e: self.to_class(e.control.class_name)))
+            self.classes_row.update()
+    
+    def notify(self, message: str):
+        self.page.snack_bar = ft.SnackBar(ft.Text(message))
+        self.page.snack_bar.open = True
+        self.page.update()
 
 class ClassCard(NeuContainer):
-    def __init__(self, class_name: str, banner_img: str, on_click: callable = None):
+    def __init__(self, class_name: str, on_click: callable = None):
         super().__init__(
             padding=ft.padding.all(0),
         )
 
         self.width = 200
         self.height = 200
+        self.col = {"sm": 6, "md": 4, "xl": 2}
+        self.class_name = class_name
 
-        banner = ft.Image(banner_img, width=200, height=150, fit=ft.ImageFit.FILL, border_radius=12)
+        banner = ft.Image("class.png", width=200, height=150, fit=ft.ImageFit.FILL, border_radius=12)
         title = ft.Text(class_name, weight=ft.FontWeight.BOLD)
         self.border = ft.border.all(4, ft.Colors.BLACK)
 

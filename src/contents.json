@@ -1,0 +1,64 @@
+{
+    "Users": {
+        "Bill": {
+            "email": "hahahaha@gmail.com",
+            "password": "pass"
+        }
+    },
+    "Classes": {
+        "Into the Unknown": {
+            "Shirogane": {
+                "DSA": 100,
+                "HDL": 100,
+                "RM": 100,
+                "Mixed Signals": 100,
+                "Feedback": 100,
+                "Logic": 100,
+                "FILI": 100,
+                "CISCO": 100
+            },
+            "Toku": {
+                "DSA": 100,
+                "HDL": 100,
+                "RM": 100,
+                "Mixed Signals": 100,
+                "Feedback": 100,
+                "Logic": 100,
+                "FILI": 100,
+                "CISCO": 98
+            },
+            "Gawa": {
+                "DSA": 88,
+                "HDL": 100,
+                "RM": 100,
+                "Mixed Signals": 100,
+                "Feedback": 100,
+                "Logic": 100,
+                "FILI": 100,
+                "CISCO": 100
+            },
+            "Bill": {
+                "DSA": 84,
+                "HDL": 77,
+                "RM": 66,
+                "Mixed Signals": 99,
+                "Feedback": 0,
+                "Logic": 88,
+                "FILI": 34,
+                "CISCO": 67
+            }
+        },
+        "Amazing": {
+            "Bill": {
+                "DSA": 100,
+                "HDL": 100,
+                "RM": 100,
+                "Mixed Signals": 100,
+                "Feedback": 100,
+                "Logic": 100,
+                "FILI": 100,
+                "CISCO": 100
+            }
+        }
+    }
+}

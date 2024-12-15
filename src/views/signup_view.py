@@ -1,9 +1,11 @@
 import flet as ft
 from widgets import NeuButton, NeuTextField
+from utils import UserDatabase
 
 class SignupView(ft.Container):
     def __init__(self):
         super().__init__()
+        self.padding = 16
 
         signin_text = ft.Container(
             ft.Text(
@@ -17,14 +19,14 @@ class SignupView(ft.Container):
             margin=ft.margin.symmetric(48, 0)
         )
 
-        uname_tf = NeuTextField("Username", False, on_change=self.on_change)
-        email_tf = NeuTextField("Enter your Email", False, on_change=self.on_change)
-        password_tf = NeuTextField("Enter your Password", True, on_change=self.on_change)
-        confirm_password_tf = NeuTextField("Confirm your Password", True, on_change=self.on_change)
+        self.uname_tf = NeuTextField("Username", False, on_change=self.on_change)
+        self.email_tf = NeuTextField("Enter your Email", False, on_change=self.on_change)
+        self.password_tf = NeuTextField("Enter your Password", True, on_change=self.on_change)
+        self.confirm_password_tf = NeuTextField("Confirm your Password", True, on_change=self.on_change)
 
         self.agree_eula = ft.Checkbox("I agree to the Terms and Conditions", check_color=ft.Colors.BLACK, label_style=ft.TextStyle(color=ft.Colors.BLACK, weight=ft.FontWeight.BOLD))
 
-        self.proceed_button = NeuButton("Sign Up", "#fa8128")
+        self.proceed_button = NeuButton("Sign Up", "#fa8128", disabled=True, on_click=self.register)
 
         self.register_text = ft.Text(
             spans=[
@@ -42,10 +44,10 @@ class SignupView(ft.Container):
         self.content = ft.Column(
             controls=[
                 signin_text,
-                uname_tf,
-                email_tf,
-                password_tf,
-                confirm_password_tf,
+                self.uname_tf,
+                self.email_tf,
+                self.password_tf,
+                self.confirm_password_tf,
                 ft.Row([self.agree_eula], alignment=ft.MainAxisAlignment.START),
                 self.proceed_button,
                 ft.Container(ft.Row([
@@ -58,7 +60,11 @@ class SignupView(ft.Container):
         )
     
     def on_change(self, event):
-        pass
+        if all([self.email_tf.value, self.password_tf.value]):
+            self.proceed_button.disabled = False
+        else:
+            self.proceed_button.disabled = True
+        self.proceed_button.update()
 
     def register_hovered(self, event: ft.HoverEvent):
         self.register_text.spans[0].style.color = ft.Colors.PINK if "enter" in event.name else ft.Colors.BLUE
@@ -70,3 +76,29 @@ class SignupView(ft.Container):
 
         switcher.content = views["login"]
         switcher.update()
+    
+    def register(self, event: ft.ControlEvent):
+        if self.password_tf.value != self.confirm_password_tf.value:
+            self.notify("Passwords don't match")
+            return
+
+        user = {
+            self.uname_tf.value : {
+                "email" : self.email_tf.value,
+                "password" : self.password_tf.value
+            }
+        }
+
+        user_database: UserDatabase = self.page.session.get("user_database")
+        success = user_database.add(user)
+
+        if not success:
+            self.notify("Signup failed: Account already exists.")
+        else:
+            self.notify("Signup successful!")
+            self.to_login(ft.ControlEvent('', '', '', '', ''))
+    
+    def notify(self, message: str):
+        self.page.snack_bar = ft.SnackBar(ft.Text(message))
+        self.page.snack_bar.open = True
+        self.page.update()

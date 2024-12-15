@@ -4,6 +4,7 @@ from widgets import NeuButton
 class OpeningView(ft.Container):
     def __init__(self):
         super().__init__()
+        self.padding = 16
 
         image = ft.Image(
             src="neobrutalist.jpg",

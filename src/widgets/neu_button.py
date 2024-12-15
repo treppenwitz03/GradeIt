@@ -1,7 +1,7 @@
 import flet as ft
 
 class NeuButton(ft.GestureDetector):
-    def __init__(self, content: str | ft.Icons | ft.Control, col: str = None, on_click: callable = None, padding: ft.Padding = ft.padding.all(0)):
+    def __init__(self, content: str | ft.Icons | ft.Control, col: str = None, on_click: callable = None, padding: ft.Padding = ft.padding.all(0), disabled: bool = False):
         super().__init__()
         cont = ft.Container()
 
@@ -19,6 +19,7 @@ class NeuButton(ft.GestureDetector):
         cont.margin = ft.margin.only(padding.left, padding.top, padding.right, padding.bottom)
         cont.animate_offset = ft.animation.Animation(250)
         self.clicked_callable = on_click
+        self.disabled = disabled
 
         self.shadow = ft.BoxShadow(
             blur_radius=12,

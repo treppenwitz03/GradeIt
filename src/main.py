@@ -2,12 +2,14 @@ import flet as ft
 import os
 
 import views
+import utils
 
 def main(page: ft.Page):
     page.bgcolor = "#fffada"
     page.window.title_bar_hidden = False if "ANDROID_BOOTLOGO" in os.environ else True
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = ft.ScrollMode.ALWAYS
+    page.padding = 0
     page.fonts = {
         "Bahnschrift" : "fonts/Bahnschrift.ttf"
     }
@@ -22,6 +24,7 @@ def main(page: ft.Page):
     views_dict["signup"] = views.SignupView()
     views_dict["home"] = views.HomeView()
     views_dict["class"] = views.ClassView()
+    views_dict["calc"] = views.AdderView()
 
     page_switcher = ft.AnimatedSwitcher(
         views_dict["opening"],
@@ -30,6 +33,9 @@ def main(page: ft.Page):
         transition=ft.AnimatedSwitcherTransition.SCALE
     )
     page.session.set("views", views_dict)
+
+    user_database = utils.UserDatabase()
+    page.session.set("user_database", user_database)
 
     def minimize():
         page.window.minimized = True
